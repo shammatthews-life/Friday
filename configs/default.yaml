@@ -1,0 +1,16 @@
+project:
+  name: VisionAid
+  assistant: FRIDAY
+  mode: desktop_local
+
+runtime:
+  local_models_only: true
+  no_cloud: true
+  safety_first: true
+
+pipeline:
+  detector: yolov11n
+  depth: depth_anything_v2_small
+  stt: faster_whisper_small
+  tts: piper_onnx
+  optional_llm: disabled

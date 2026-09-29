@@ -1,0 +1,98 @@
+version: 1
+results:
+  json: data/evaluation/benchmark_results.json
+  csv: data/evaluation/benchmark_results.csv
+settings:
+  warmup_runs: 1
+  repeated_runs: 10
+  batch_size: 1
+  image_resolution: [640, 640]
+  audio_sample_rate_hz: 16000
+  audio_channels: 1
+  device: cpu
+  download_weights: false
+models:
+  - name: YOLO26n
+    family: Ultralytics YOLO26
+    capability: object_detection
+    mode: continuous
+    loader: ultralytics
+    local_path: models/detection/yolo26n.pt
+    enabled: true
+  - name: YOLO26s
+    family: Ultralytics YOLO26
+    capability: object_detection
+    mode: continuous
+    loader: ultralytics
+    local_path: models/yolo26s.pt
+    enabled: false
+  - name: YOLOE-26n-seg
+    family: Ultralytics YOLOE-26
+    capability: open_vocabulary_search
+    mode: search
+    loader: ultralytics_yoloe
+    local_path: models/detection/yoloe-26n-seg.pt
+    enabled: true
+  - name: YOLOE-26s-seg
+    family: Ultralytics YOLOE-26
+    capability: open_vocabulary_search
+    mode: search
+    loader: ultralytics_yoloe
+    local_path: models/yoloe-26s-seg.pt
+    enabled: false
+  - name: Depth Anything V2 Small
+    family: Depth Anything V2
+    capability: depth
+    mode: continuous
+    loader: torchscript
+    local_path: models/depth/depth-anything-v2-small/model.safetensors
+    enabled: true
+  - name: Depth Anything V2 Base
+    family: Depth Anything V2
+    capability: depth
+    mode: continuous
+    loader: torchscript
+    local_path: models/depth_anything_v2_vitb.pth
+    enabled: false
+  - name: faster-whisper tiny
+    family: faster-whisper
+    capability: speech_to_text
+    mode: on_demand
+    loader: faster_whisper
+    local_path: models/speech/faster-whisper-tiny
+    enabled: true
+  - name: faster-whisper small
+    family: faster-whisper
+    capability: speech_to_text
+    mode: on_demand
+    loader: faster_whisper
+    local_path: models/faster-whisper-small
+    enabled: false
+  - name: en_US-lessac-medium
+    family: Piper VITS ONNX
+    capability: text_to_speech
+    mode: on_demand
+    loader: piper_onnx
+    local_path: models/piper/en_US-lessac-medium.onnx
+    enabled: false
+  - name: en_US-amy-medium
+    family: Piper VITS ONNX
+    capability: text_to_speech
+    mode: on_demand
+    loader: piper_onnx
+    local_path: models/tts/en_US-amy-medium/en_US-amy-medium.onnx
+    enabled: true
+  - name: Qwen3-1.7B
+    family: Qwen3
+    capability: optional_llm
+    mode: on_demand
+    loader: transformers_local
+    local_path: models/qwen3-1.7b
+    enabled: false
+  - name: Phi-4-mini-instruct
+    family: Phi-4
+    capability: optional_llm
+    mode: on_demand
+    loader: transformers_local
+    local_path: models/phi-4-mini-instruct
+    enabled: false

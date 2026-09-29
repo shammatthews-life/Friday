@@ -1,0 +1,49 @@
+models:
+  object_detection:
+    - name: YOLO11n
+      recommended: true
+      phase: phase1
+    - name: YOLO11s
+      recommended: true
+      phase: phase1
+    - name: YOLO11m
+      recommended: false
+      phase: phase1_optional
+  open_vocabulary:
+    - name: YOLOE-n
+      recommended: true
+      phase: phase1
+    - name: YOLOE-s
+      recommended: true
+      phase: phase1
+    - name: YOLOE-m
+      recommended: false
+      phase: phase1_optional
+  depth:
+    - name: Depth-Anything-V2-Small
+      recommended: true
+      phase: phase1
+    - name: Depth-Anything-V2-Base
+      recommended: true
+      phase: phase1
+    - name: Depth-Anything-V2-Large
+      recommended: false
+      phase: phase1_optional
+  stt:
+    - name: faster-whisper-tiny
+      recommended: false
+      phase: phase1
+    - name: faster-whisper-small
+      recommended: true
+      phase: phase1
+    - name: faster-whisper-medium
+      recommended: false
+      phase: phase1_optional
+  tts:
+    - name: Piper-ONNX
+      recommended: true
+      phase: phase1
+  llm:
+    - name: Small Gemma/Qwen/Phi model
+      recommended: false
+      phase: optional

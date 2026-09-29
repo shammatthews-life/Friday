@@ -1,0 +1,8 @@
+[project]
+name = "visionaid-friday"
+version = "0.1.0"
+description = "VisionAid local desktop AI assistant core"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

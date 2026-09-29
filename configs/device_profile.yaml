@@ -1,0 +1,66 @@
+device:
+  os:
+    name: "Microsoft Windows 11 Home Single Language"
+    version: "10.0.26200"
+    build: "26200"
+  python:
+    version: "3.14.5"
+    architecture: "64-bit"
+    executable: "C:\\Users\\SHARON\\AppData\\Local\\Programs\\Python\\Python314\\python.exe"
+  cpu:
+    name: "AMD Ryzen 7 7445HS w/ Radeon 740M Graphics"
+    physical_cores: 6
+    logical_processors: 12
+    max_clock_mhz: 3201
+  ram:
+    total_mb: 15973
+    total_gb: 15.6
+    free_mb: UNKNOWN
+    used_mb: UNKNOWN
+    usage_percent: UNKNOWN
+  gpu:
+    vendor: "NVIDIA"
+    model: "NVIDIA GeForce RTX 4050 Laptop GPU"
+    driver_version: "32.0.15.9282"
+    dedicated_vram_mb: 4096
+    dedicated_vram_gb: 4.0
+    integrated_gpu: "AMD Radeon 740M Graphics"
+    integrated_vram_mb: 512
+  cuda:
+    cuda_available: UNKNOWN
+    torch_cuda_available: UNKNOWN
+    torch_cuda_version: UNKNOWN
+    visible_device_count: UNKNOWN
+    gpu_name_reported_by_torch: UNKNOWN
+    nvidia_smi_status: "NOT VERIFIED in this audit"
+  storage:
+    C:
+      total_gb: 275.7
+      free_gb: 140.4
+      used_gb: 135.3
+    D:
+      total_gb: 100.1
+      free_gb: 93.5
+      used_gb: 6.6
+    E:
+      total_gb: 100.1
+      free_gb: 93.1
+      used_gb: 7.0
+  camera:
+    detected: true
+    name: "HP Wide Vision HD Camera"
+    index: UNKNOWN
+    resolution: UNKNOWN
+  microphone:
+    detected: true
+    name: "Microphone Array (AMD Audio Device)"
+    sample_rate_hz: UNKNOWN
+    channel_count: UNKNOWN
+  audio_output:
+    detected: true
+    name: "Realtek(R) Audio"
+    output_device_name: "Speaker (Realtek(R) Audio)"
+  notes:
+    - "Measured values above were taken from Windows WMI and direct system inspection."
+    - "PyTorch/CUDA compatibility is not yet proven for the project venv and must be validated before any model download."
+    - "No models were downloaded during Phase 0.5."

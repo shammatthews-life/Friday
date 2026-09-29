@@ -1,0 +1,31 @@
+# Core runtime
+numpy>=1.26
+opencv-python>=4.10
+pillow>=10.4
+PyYAML>=6.0
+scipy>=1.12
+
+# Local ML and models
+torch>=2.5.0
+ultralytics==8.4.157
+transformers==5.17.0
+faster-whisper==1.2.1
+piper-tts==1.8.0
+clip @ git+https://github.com/ultralytics/CLIP.git@a13192f8cb767260d7dfd98c843b0716593169e7
+ftfy==6.3.1
+wcwidth==0.8.4
+
+# Local inference support
+onnxruntime==1.30.0
+psutil==7.2.2
+soundfile==0.14.0
+
+# Voice and audio
+sounddevice>=0.4.7
+pyaudio>=0.2.14
+
+# Optional utilities
+tqdm>=4.9
+py-cpuinfo>=9.0
+
+# Future: faster-whisper, piper-tts, ultralytics, depth-anything-v2

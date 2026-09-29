@@ -1,0 +1,15 @@
+safety:
+  obstacle_confidence_min: 0.7
+  temporal_confirmation_frames: 3
+  cooldown_seconds: 2.0
+  alert_priority: ["immediate_obstacle", "critical_warning", "navigation_target", "scene_info"]
+
+object:
+  detection_confidence_min: 0.45
+  tracking_max_lost_frames: 12
+
+navigation:
+  target_center_tolerance: 0.15
+  target_left_threshold: -0.25
+  target_right_threshold: 0.25
+  close_distance_m: 1.0

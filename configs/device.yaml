@@ -1,0 +1,16 @@
+device:
+  platform: windows
+  python_version: "3.14.5"
+  architecture: "64-bit"
+  cpu: "not yet audited reliably from shell"
+  ram_gb: 0
+  gpu: "not yet audited reliably from shell"
+  cuda_available: false
+  gpu_vram_gb: 0
+  webcam_detected: false
+  microphone_detected: false
+  speakers_detected: false
+  storage_free_gb: 0
+  storage_total_gb: 0
+  ffmpeg_available: false
+  note: "This file is intentionally a placeholder until the local host is audited and validated."

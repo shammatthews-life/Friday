@@ -1,0 +1,61 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Model weights and native binaries
+models/**/*.pt
+models/**/*.onnx
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.ts
+models/**/*.pyd
+models/**/*.dll
+*.dll
+*.pyd
+*.so
+*.dylib
+
+# Local media and generated runtime data
+data/test_audio/
+data/test_videos/
+data/test_images/webcam_*
+data/test_images/*live*
+data/test_images/*detection_test*
+data/test_images/*diagnostic*
+data/test_images/*warm*
+data/test_images/*search*
+data/test_images/scene_common_objects.jpg
+data/benchmarks/
+data/evaluation/*.csv
+data/evaluation/*.json
+data/evaluation/*.wav
+data/raw/test_audio/
+
+# Secrets and credentials
+.env
+.env.*
+*.env
+credentials
+credentials.*
+**/credentials
+**/credentials.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Temporary, editor, and operating-system files
+*.log
+*.tmp
+*.part
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+.idea/
