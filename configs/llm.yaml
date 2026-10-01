@@ -9,3 +9,26 @@ assistant:
 
 conversation:
   recent_message_limit: 12
+
+visionaid:
+  enabled: true
+  capabilities:
+    scene_awareness: vision.scene_awareness
+    object_search: vision.object_search
+    relative_depth: vision.relative_depth
+  grounding:
+    require_returned_evidence: true
+    relative_depth_only: true
+    metric_distance_claims: false
+  resources:
+    lazy_specialist_loading: true
+    concurrent_specialist_models: false
+    one_heavy_model_at_a_time: true
+    qwen_runtime_must_release_specialists_before_inference: true
+    qwen_smoke_process_tree_ram_mb: 4650
+    qwen_smoke_remaining_system_ram_mb: 399
+    specialists:
+      - yolo
+      - depth_anything
+      - whisper
+      - piper
