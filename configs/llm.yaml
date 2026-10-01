@@ -10,6 +10,29 @@ assistant:
 conversation:
   recent_message_limit: 12
 
+qwen:
+  model_path: models/llm/qwen3-8b/Qwen3-8B-Q4_K_M.gguf
+  runtime_dir: .venv/llama.cpp
+  host: 127.0.0.1
+  port: 8081
+  context_size: 2048
+  gpu_layers: 24
+  required_vulkan_device: NVIDIA GeForce RTX 4050
+  startup_timeout_seconds: 240
+  request_timeout_seconds: 300
+  max_response_tokens: 128
+  offline_only: true
+
+personality:
+  system_prompt_policy:
+    natural_conversation: true
+    friendly_calm_helpful: true
+    concise_for_tasks: true
+    relaxed_for_casual_conversation: true
+    expose_internal_capabilities: false
+    invent_perception_or_safety_facts: false
+    report_metric_depth_without_calibration: false
+
 visionaid:
   enabled: true
   capabilities:
