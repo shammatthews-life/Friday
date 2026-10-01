@@ -21,7 +21,7 @@ SCENE_AWARENESS = "vision.scene_awareness"
 OBJECT_SEARCH = "vision.object_search"
 RELATIVE_DEPTH = "vision.relative_depth"
 
-SceneProvider = Callable[[], SceneState | None]
+SceneProvider = Callable[[], Any]
 ImagePathProvider = Callable[[], str | Path | None]
 DepthProvider = Callable[[SceneObject, str | Path | None], Any]
 
@@ -52,6 +52,7 @@ class VisionAidBridge(CapabilityProvider):
         self.object_search = object_search
         self.image_path_provider = image_path_provider
         self.depth_provider = depth_provider
+        self._latest_snapshot: Any | None = None
 
     def register(self, registry: CapabilityRegistry) -> CapabilityRegistry:
         for capability in self.capabilities:
@@ -70,7 +71,17 @@ class VisionAidBridge(CapabilityProvider):
         return CapabilityResult.unavailable("Unknown VisionAid capability")
 
     def _current_scene(self) -> SceneState | None:
-        return self.scene_provider() if self.scene_provider is not None else None
+        self._latest_snapshot = None
+        if self.scene_provider is None:
+            return None
+        provided = self.scene_provider()
+        if provided is None:
+            return None
+        snapshot_scene = getattr(provided, "scene_state", None)
+        if isinstance(snapshot_scene, SceneState):
+            self._latest_snapshot = provided
+            return snapshot_scene
+        return provided if isinstance(provided, SceneState) else None
 
     @staticmethod
     def _object_data(obj: Any) -> dict[str, Any]:
@@ -126,6 +137,10 @@ class VisionAidBridge(CapabilityProvider):
             "objects": objects,
             "recently_seen": remembered,
         }
+        if self._latest_snapshot is not None:
+            to_dict = getattr(self._latest_snapshot, "to_dict", None)
+            if callable(to_dict):
+                data["perception"] = to_dict()
         if target:
             data["target"] = target
             data["target_object"] = target_object
@@ -203,6 +218,26 @@ class VisionAidBridge(CapabilityProvider):
                 "target": target,
                 "object_found": False,
                 "depth_available": False,
+            }
+            return CapabilityResult(
+                available=True,
+                data=data,
+                grounding=GroundingData(relative_depth=data),
+            )
+
+        existing_category = getattr(scene_object, "relative_depth_category", "unknown")
+        if existing_category in {
+            "relatively near",
+            "relatively middle-distance",
+            "relatively far",
+        }:
+            data = {
+                "scene_available": True,
+                "target": scene_object.label,
+                "object_found": True,
+                "depth_available": True,
+                "category": existing_category,
+                "depth_type": "relative",
             }
             return CapabilityResult(
                 available=True,

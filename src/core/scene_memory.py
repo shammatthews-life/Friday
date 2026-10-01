@@ -17,6 +17,7 @@ class RememberedObject:
     last_seen_update: int
     missed_updates: int = 0
     stale: bool = False
+    source_track_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,7 @@ class SceneMemory:
             normalized_horizontal=float(obj.normalized_horizontal),
             timestamp=self._current_timestamp,
             last_seen_update=self._update_number,
+            source_track_id=obj.track_id,
         )
         self._next_track_id += 1
         return remembered
@@ -97,12 +99,21 @@ class SceneMemory:
         for detected in scene.objects:
             label = self._normalize_label(detected.label)
             x = float(detected.normalized_horizontal)
-            candidates = [
-                (abs(self._objects[index].normalized_horizontal - x), index)
-                for index in available
-                if self._objects[index].label == label
-                and abs(self._objects[index].normalized_horizontal - x) <= self.position_tolerance
-            ]
+            candidates = []
+            if detected.track_id is not None:
+                candidates = [
+                    (abs(self._objects[index].normalized_horizontal - x), index)
+                    for index in available
+                    if self._objects[index].label == label
+                    and self._objects[index].source_track_id == detected.track_id
+                ]
+            if not candidates:
+                candidates = [
+                    (abs(self._objects[index].normalized_horizontal - x), index)
+                    for index in available
+                    if self._objects[index].label == label
+                    and abs(self._objects[index].normalized_horizontal - x) <= self.position_tolerance
+                ]
             if candidates:
                 _, index = min(candidates)
                 available.remove(index)
@@ -120,6 +131,7 @@ class SceneMemory:
             remembered.confidence = float(detected.confidence)
             remembered.position = self._position(detected)
             remembered.normalized_horizontal = float(detected.normalized_horizontal)
+            remembered.source_track_id = detected.track_id
             remembered.timestamp = self._current_timestamp
             remembered.last_seen_update = self._update_number
             remembered.missed_updates = 0

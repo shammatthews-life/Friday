@@ -21,6 +21,7 @@ class SearchDetection:
     bounding_box: tuple[float, float, float, float] | None
     position: str
     normalized_horizontal: float
+    track_id: int | None = None
 
 
 @dataclass
@@ -32,6 +33,7 @@ class TargetLock:
     normalized_horizontal: float = 0.5
     state: TargetState = TargetState.SEARCHING
     missed_frames: int = 0
+    track_id: int | None = None
 
 
 class ObjectSearch:
@@ -78,6 +80,7 @@ class ObjectSearch:
                     bounding_box=bounding_box,
                     position=position,
                     normalized_horizontal=normalized_x,
+                    track_id=getattr(obj, "track_id", None),
                 )
             )
         return detections
@@ -112,9 +115,13 @@ class ObjectSearch:
         target.confidence = detection.confidence
         target.position = detection.position
         target.normalized_horizontal = detection.normalized_horizontal
+        target.track_id = detection.track_id
 
     @classmethod
     def _matches(cls, target: TargetLock, detection: SearchDetection) -> bool:
+        if target.track_id is not None and detection.track_id is not None:
+            if target.track_id == detection.track_id:
+                return True
         if target.bounding_box is not None and detection.bounding_box is not None:
             overlap = cls._iou(target.bounding_box, detection.bounding_box)
             distance = cls._center_distance_ratio(target.bounding_box, detection.bounding_box)
@@ -122,13 +129,16 @@ class ObjectSearch:
         return abs(target.normalized_horizontal - detection.normalized_horizontal) <= 0.25
 
     @classmethod
-    def _match_score(cls, target: TargetLock, detection: SearchDetection) -> tuple[float, float, float]:
+    def _match_score(cls, target: TargetLock, detection: SearchDetection) -> tuple[float, float, float, float]:
+        identity_match = float(
+            target.track_id is not None and target.track_id == detection.track_id
+        )
         if target.bounding_box is not None and detection.bounding_box is not None:
             overlap = cls._iou(target.bounding_box, detection.bounding_box)
             distance = cls._center_distance_ratio(target.bounding_box, detection.bounding_box)
-            return overlap, -distance, detection.confidence
+            return identity_match, overlap, -distance, detection.confidence
         distance = abs(target.normalized_horizontal - detection.normalized_horizontal)
-        return 0.0, -distance, detection.confidence
+        return identity_match, 0.0, -distance, detection.confidence
 
     def begin_search(self, requested_label: str, scene: SceneState) -> TargetLock:
         requested_label = self._normalize_label(requested_label)

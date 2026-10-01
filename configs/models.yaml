@@ -1,24 +1,21 @@
 models:
   object_detection:
-    - name: YOLO11n
+    - name: YOLO26n
       recommended: true
-      phase: phase1
-    - name: YOLO11s
-      recommended: true
-      phase: phase1
-    - name: YOLO11m
+      local_path: models/detection/yolo26n.pt
+      status: locally_verified
+      phase: phase2
+    - name: YOLO26s
       recommended: false
-      phase: phase1_optional
+      local_path: models/detection/yolo26s.pt
+      status: not_locally_staged_or_tested
+      phase: phase3_optional
   open_vocabulary:
-    - name: YOLOE-n
-      recommended: true
-      phase: phase1
-    - name: YOLOE-s
-      recommended: true
-      phase: phase1
-    - name: YOLOE-m
+    - name: YOLOE-26n-seg
       recommended: false
-      phase: phase1_optional
+      local_path: models/detection/yoloe-26n-seg.pt
+      status: incompatible_torchscript_archive
+      phase: phase3_investigation
   depth:
     - name: Depth-Anything-V2-Small
       recommended: true

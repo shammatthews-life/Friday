@@ -9,7 +9,8 @@ runtime:
   safety_first: true
 
 pipeline:
-  detector: yolov11n
+  detector: yolo26n
+  perception_profile: balanced
   depth: depth_anything_v2_small
   stt: faster_whisper_small
   tts: piper_onnx

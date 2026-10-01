@@ -13,6 +13,11 @@ class SceneObject:
     position_category: str = "center"
     timestamp: float = 0.0
     distance: str = "unknown"
+    bounding_box: tuple[float, float, float, float] | None = None
+    track_id: int | None = None
+    normalized_vertical: float = 0.5
+    vertical_position: str = "middle"
+    relative_depth_category: str = "unknown"
 
 
 @dataclass

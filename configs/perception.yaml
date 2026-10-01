@@ -1,0 +1,66 @@
+version: 1
+default_profile: balanced
+
+profiles:
+  quality:
+    model_name: YOLO26n
+    model_path: models/detection/yolo26n.pt
+    image_size: 640
+    confidence: 0.25
+    device: cpu
+    depth_enabled: true
+    depth_interval_frames: 2
+    retain_depth_model: false
+  balanced:
+    model_name: YOLO26n
+    model_path: models/detection/yolo26n.pt
+    image_size: 640
+    confidence: 0.25
+    device: cpu
+    depth_enabled: true
+    depth_interval_frames: 5
+    retain_depth_model: false
+  realtime:
+    model_name: YOLO26n
+    model_path: models/detection/yolo26n.pt
+    image_size: 480
+    confidence: 0.30
+    device: cpu
+    depth_enabled: true
+    depth_interval_frames: 15
+    retain_depth_model: false
+
+depth:
+  model_dir: models/depth/depth-anything-v2-small
+  relative_only: true
+  minimum_brightness: 8.0
+  minimum_contrast: 1.0
+
+tracking:
+  max_missing_frames: 3
+  reidentify_frames: 15
+  minimum_iou: 0.03
+  maximum_center_distance: 0.20
+  movement_threshold: 0.08
+
+camera:
+  index: 0
+  backend: CAP_DSHOW
+  width: 640
+  height: 480
+  warmup_seconds: 1.0
+  minimum_brightness: 8.0
+  minimum_contrast: 1.0
+
+spatial:
+  minimum_gap_ratio: 0.02
+
+scene_memory:
+  retention_seconds: 5.0
+  miss_limit: 3
+  position_tolerance: 0.25
+
+model_selection:
+  quality_recommendation: YOLO26n
+  note: "YOLO26n is the only compatible locally staged detector benchmarked in this repository."
+  stronger_local_checkpoint_tested: false
