@@ -36,6 +36,10 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 `VideoEventSummarizer` groups retained `VideoFacts` events by track into structured presence, activity, disappearance, reappearance, or interrupted-reappearance episodes. Episodes retain their source events, available positions/confidences, and matching evidence-index records; partial inputs are marked incomplete and episode history is bounded. Grouping reflects only explicit timeline events and does not add natural-language interpretation.
 
+## Video query engine
+
+`VideoQueryEngine` provides deterministic structured queries over a `SemanticTimeline`, its retained `VideoFacts`, matching `VideoEvidenceIndex`, and episode summaries. It supports object presence/appearance/disappearance/movement, track history and observed duration, event/episode time ranges, evidence lookup, and the retained timeline. Optional label filters are case-insensitive; duplicate labels remain separate by track ID. Missing metadata and empty results are returned as-is, with no generated natural-language answers.
+
 Run deterministic temporal tests with:
 
 ```powershell
