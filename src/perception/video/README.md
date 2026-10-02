@@ -20,6 +20,10 @@ The pipeline remains responsible for validating and processing each `PerceptionF
 
 Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not run perception, alter the frame abstraction, or infer events. Pixel-change thresholds are a simple visual heuristic, not semantic scene understanding.
 
+## Semantic timeline
+
+`SemanticTimeline` consumes the structured `SceneSnapshot` produced by the existing perception pipeline and converts tracker transitions and track states into bounded chronological event records. Track IDs are preserved, so same-label objects remain distinct. This is structured event data, not natural-language video understanding, event interpretation, or summarization.
+
 Run deterministic temporal tests with:
 
 ```powershell
