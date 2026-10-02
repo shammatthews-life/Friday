@@ -18,6 +18,14 @@ class PerceptionFrame:
     source_id: str = "unknown"
     frame_index: int | None = None
 
+    @property
+    def width(self) -> int:
+        return int(self.image.shape[1]) if self.image.ndim >= 2 else 0
+
+    @property
+    def height(self) -> int:
+        return int(self.image.shape[0]) if self.image.ndim >= 1 else 0
+
 
 @dataclass
 class Detection:
