@@ -10,7 +10,7 @@ profiles:
     device: cpu
     depth_enabled: true
     depth_interval_frames: 2
-    retain_depth_model: false
+    retain_depth_model: true
   balanced:
     model_name: YOLO26n
     model_path: models/detection/yolo26n.pt
@@ -19,7 +19,7 @@ profiles:
     device: cpu
     depth_enabled: true
     depth_interval_frames: 5
-    retain_depth_model: false
+    retain_depth_model: true
   realtime:
     model_name: YOLO26n
     model_path: models/detection/yolo26n.pt
@@ -28,7 +28,7 @@ profiles:
     device: cpu
     depth_enabled: true
     depth_interval_frames: 15
-    retain_depth_model: false
+    retain_depth_model: true
 
 depth:
   model_dir: models/depth/depth-anything-v2-small

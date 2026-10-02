@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -16,6 +17,7 @@ from src.llm.tool_interface import CapabilityKind, CapabilityRegistry, Capabilit
 from src.llm.visionaid_bridge import SCENE_AWARENESS, VisionAidBridge
 from src.perception.pipeline import PerceptionPipeline
 from src.perception.pipeline import create_pipeline
+from src.perception.depth_service import LazyDepthAnythingV2
 from src.perception.spatial.relations import horizontal_region, vertical_region
 from src.perception.tracker.iou_tracker import IoUTracker
 from src.perception.types import Detection, PerceptionFrame
@@ -185,6 +187,7 @@ def test_depth_positions_and_failures() -> None:
                 make_detection("person", (80, 75, 96, 95)),
             ],
             1: [make_detection("bottle", (5, 5, 20, 25))],
+            2: [make_detection("bottle", (5, 5, 20, 25))],
         },
         depth=depth,
         depth_interval=2,
@@ -199,7 +202,11 @@ def test_depth_positions_and_failures() -> None:
     skipped = pipeline.process(make_frame(1)).snapshot
     assert depth.calls == 1
     assert skipped.scene_state.objects[0].relative_depth_category == "relatively near"
+    skipped_again = pipeline.process(make_frame(2)).snapshot
+    assert depth.calls == 1
+    assert skipped_again.scene_state.objects[0].relative_depth_category == "relatively near"
     print("G RELATIVE DEPTH: PASS")
+    print("DEPTH IS SCHEDULED, NOT CALLED EVERY FRAME: PASS")
     print("H LEFT/CENTER/RIGHT AND UPPER/MIDDLE/LOWER: PASS")
     print("SPATIAL RELATIONSHIPS: PASS")
     pipeline.close()
@@ -222,6 +229,40 @@ def test_depth_positions_and_failures() -> None:
     assert failed.depth_summary.get("error") == "RuntimeError: mock depth unavailable"
     print("DEPTH FAILURE PRESERVES DETECTIONS: PASS")
     failing_depth_pipeline.close()
+
+
+def test_retained_depth_estimator_reuses_model() -> None:
+    factory_calls = 0
+
+    class MockEstimator:
+        def __init__(self, model_dir) -> None:
+            nonlocal factory_calls
+            factory_calls += 1
+            self.estimate_calls = 0
+            self.load_time_ms = 12.0
+
+        def estimate(self, image_path):
+            self.estimate_calls += 1
+            return np.ones((10, 10), dtype=np.float32)
+
+        def relative_depth_for_box(self, depth_map, bounding_box):
+            return SimpleNamespace(value=0.5, category="relatively near")
+
+    provider = LazyDepthAnythingV2(
+        ROOT / "models/depth/depth-anything-v2-small",
+        retain_model=True,
+        estimator_factory=MockEstimator,
+    )
+    detection = make_detection("bottle", (10, 10, 30, 30))
+    detection.track_id = 5
+    first = provider.estimate(make_frame(10), [detection])
+    second = provider.estimate(make_frame(11), [detection])
+    assert first == second == {5: "relatively near"}
+    assert factory_calls == 1
+    assert provider.estimator.estimate_calls == 2
+    provider.close()
+    assert provider.estimator is None
+    print("RETAINED DEPTH ESTIMATOR REUSES MODEL AND CLOSE RELEASES IT: PASS")
 
 
 def test_search_and_ambiguity() -> None:
@@ -378,6 +419,7 @@ def main() -> None:
     test_single_multiple_and_duplicate_labels()
     test_motion_jitter_disappearance_reacquisition()
     test_depth_positions_and_failures()
+    test_retained_depth_estimator_reuses_model()
     test_search_and_ambiguity()
     test_scene_memory_uses_stable_track_identity()
     test_invalid_frames_safety_and_bridge_snapshot()
