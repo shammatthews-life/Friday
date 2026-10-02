@@ -32,6 +32,10 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 `VideoEvidenceIndex.from_facts(...)` indexes event evidence from retained `VideoFacts`, including source/current frame and timestamp, available previous event frame/timestamp for the same track, positions, and confidence. Lookups are available by event, track ID, or the event's source frame index. Previous-event references are included only when an earlier event for that track is present; unavailable frame indexes and metadata remain absent. Index history is bounded and does not recover evicted timeline events.
 
+## Event episodes
+
+`VideoEventSummarizer` groups retained `VideoFacts` events by track into structured presence, activity, disappearance, reappearance, or interrupted-reappearance episodes. Episodes retain their source events, available positions/confidences, and matching evidence-index records; partial inputs are marked incomplete and episode history is bounded. Grouping reflects only explicit timeline events and does not add natural-language interpretation.
+
 Run deterministic temporal tests with:
 
 ```powershell
