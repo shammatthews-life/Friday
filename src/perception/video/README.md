@@ -28,6 +28,10 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 `VideoFacts.from_timeline(...)` derives per-track facts and simple queries from the timeline's retained events only. It preserves event timestamps, frame indexes, track IDs, labels, positions, and confidence; derives observed first/last-seen timestamps, presence duration, appearance/reacquisition counts, and current presence; and supports queries for present, appeared, disappeared, moved, event timeline, and per-track history. Optional fact-history limits apply to retained timeline events, so facts cannot recover events already evicted and do not imply unobserved activity. The output is structured data only; it does not generate natural-language answers.
 
+## Video evidence index
+
+`VideoEvidenceIndex.from_facts(...)` indexes event evidence from retained `VideoFacts`, including source/current frame and timestamp, available previous event frame/timestamp for the same track, positions, and confidence. Lookups are available by event, track ID, or the event's source frame index. Previous-event references are included only when an earlier event for that track is present; unavailable frame indexes and metadata remain absent. Index history is bounded and does not recover evicted timeline events.
+
 Run deterministic temporal tests with:
 
 ```powershell
