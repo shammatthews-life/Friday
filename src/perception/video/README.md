@@ -24,6 +24,10 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 `SemanticTimeline` consumes the structured `SceneSnapshot` produced by the existing perception pipeline and converts tracker transitions and track states into bounded chronological event records. Track IDs are preserved, so same-label objects remain distinct. This is structured event data, not natural-language video understanding, event interpretation, or summarization.
 
+## Video facts
+
+`VideoFacts.from_timeline(...)` derives per-track facts and simple queries from the timeline's retained events only. It preserves event timestamps, frame indexes, track IDs, labels, positions, and confidence; derives observed first/last-seen timestamps, presence duration, appearance/reacquisition counts, and current presence; and supports queries for present, appeared, disappeared, moved, event timeline, and per-track history. Optional fact-history limits apply to retained timeline events, so facts cannot recover events already evicted and do not imply unobserved activity. The output is structured data only; it does not generate natural-language answers.
+
 Run deterministic temporal tests with:
 
 ```powershell
