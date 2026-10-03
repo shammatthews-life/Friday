@@ -44,6 +44,10 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 `VideoAnalysisSession` composes a frame source, `TemporalSampler`, existing `PerceptionPipeline`, timeline, facts, evidence index, episode summarizer, and query engine. `run()` returns a structured `VideoAnalysisResult` with input metadata, sampled/processed/invalid frame counts, component results, query access, status, and explicit processing errors. Invalid perception snapshots are skipped from the semantic timeline while processing continues; source-open failures, decoder errors, empty input, and partial results are surfaced in the result. Session output is structured data only.
 
+## Video text extraction foundation
+
+`VideoTextExtractor` accepts an `OCRBackend` that maps an image to `OCRDetection` records, then attaches the source `PerceptionFrame` timestamp, frame index, and source ID. Backend confidence and bounding boxes are preserved only when supplied. Repeated normalized text from the same source is suppressed when actual consecutive observations fall within configured frame/time gaps; emitted observations and deduplication keys are bounded. Supply an optional `text_extractor` to `VideoAnalysisSession` to include its structured observations in `VideoAnalysisResult.text_observations`. OCR is separate from decoding, perception, tracking, and language generation; no OCR model is bundled.
+
 Run deterministic temporal tests with:
 
 ```powershell

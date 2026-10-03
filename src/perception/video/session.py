@@ -8,6 +8,7 @@ from src.perception.pipeline import PerceptionPipeline
 from src.perception.types import PerceptionFrame
 from src.perception.video.evidence import VideoEvidenceIndex
 from src.perception.video.facts import VideoFacts
+from src.perception.video.ocr import OCRBackendError, VideoTextExtractor, VideoTextObservation
 from src.perception.video.query import VideoQueryEngine
 from src.perception.video.summary import VideoEpisode, VideoEventSummarizer
 from src.perception.video.temporal import TemporalSampler
@@ -48,6 +49,7 @@ class VideoAnalysisResult:
     episodes: tuple[VideoEpisode, ...]
     queries: VideoQueryEngine
     errors: tuple[str, ...]
+    text_observations: tuple[VideoTextObservation, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -60,6 +62,7 @@ class VideoAnalysisResult:
             "facts": self.facts.to_dict(),
             "evidence": self.evidence.to_dict(),
             "episodes": [episode.to_dict() for episode in self.episodes],
+            "text_observations": [item.to_dict() for item in self.text_observations],
             "errors": list(self.errors),
         }
 
@@ -74,6 +77,7 @@ class VideoAnalysisSession:
         *,
         temporal_sampler: TemporalSampler | None = None,
         timeline: SemanticTimeline | None = None,
+        text_extractor: VideoTextExtractor | None = None,
         history_size: int = 256,
     ) -> None:
         if history_size < 1:
@@ -82,6 +86,7 @@ class VideoAnalysisSession:
         self.pipeline = pipeline
         self.temporal_sampler = temporal_sampler or TemporalSampler()
         self.timeline = timeline or SemanticTimeline(history_size=history_size)
+        self.text_extractor = text_extractor
         self.history_size = history_size
 
     def run(self) -> VideoAnalysisResult:
@@ -105,6 +110,13 @@ class VideoAnalysisSession:
                 if first_source_id is None:
                     first_source_id = frame.source_id or None
                 self.temporal_sampler.process(frame)
+                if self.text_extractor is not None:
+                    try:
+                        self.text_extractor.process(frame)
+                    except OCRBackendError as error:
+                        errors.append(
+                            f"frame {frame.frame_index}: OCR failed: {type(error).__name__}: {error}"
+                        )
                 output = self.pipeline.process(frame)
                 processed_count += 1
                 if not output.snapshot.valid:
@@ -168,6 +180,11 @@ class VideoAnalysisSession:
             episodes=episodes,
             queries=queries,
             errors=tuple(errors),
+            text_observations=(
+                self.text_extractor.observations
+                if self.text_extractor is not None
+                else ()
+            ),
         )
 
 
