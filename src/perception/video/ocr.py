@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import csv
+import io
 from collections import OrderedDict, deque
 from dataclasses import dataclass
 import math
+import os
+from pathlib import Path
+import shutil
+import subprocess
 from typing import Iterable, Protocol
 
+import cv2
 import numpy as np
 
 from src.perception.types import PerceptionFrame
@@ -28,6 +35,110 @@ class OCRBackend(Protocol):
 
 class OCRBackendError(RuntimeError):
     """Raised by an OCR backend when it cannot extract text from an image."""
+
+
+class TesseractOCRBackend:
+    """Run the local Tesseract CLI and convert its TSV word records."""
+
+    def __init__(
+        self,
+        executable: str | Path | None = None,
+        *,
+        language: str = "eng",
+        timeout_seconds: float = 30.0,
+    ) -> None:
+        if not language or any(character.isspace() for character in language):
+            raise ValueError("language must be a non-empty Tesseract language code")
+        if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be a finite positive number")
+        self.executable = _find_tesseract(executable)
+        self.language = language
+        self.timeout_seconds = timeout_seconds
+        try:
+            result = subprocess.run(
+                [self.executable, "--list-langs"],
+                capture_output=True,
+                timeout=timeout_seconds,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise OCRBackendError(f"could not inspect Tesseract languages: {error}") from error
+        if result.returncode != 0:
+            detail = result.stderr.decode(errors="replace").strip()
+            raise OCRBackendError(f"Tesseract language query failed: {detail}")
+        languages = {
+            line.strip()
+            for line in result.stdout.decode(errors="replace").splitlines()
+            if line.strip() and not line.startswith("List of available languages")
+        }
+        if language not in languages:
+            raise OCRBackendError(
+                f"Tesseract language data {language!r} is unavailable"
+            )
+
+    def extract(self, image: np.ndarray) -> Iterable[OCRDetection]:
+        try:
+            encoded_ok, encoded_image = cv2.imencode(".png", image)
+        except cv2.error as error:
+            raise OCRBackendError(f"could not encode image for Tesseract: {error}") from error
+        if not encoded_ok:
+            raise OCRBackendError("could not encode image for Tesseract")
+
+        try:
+            result = subprocess.run(
+                [
+                    self.executable,
+                    "stdin",
+                    "stdout",
+                    "-l",
+                    self.language,
+                    "--oem",
+                    "1",
+                    "--psm",
+                    "6",
+                    "tsv",
+                ],
+                input=encoded_image.tobytes(),
+                capture_output=True,
+                timeout=self.timeout_seconds,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise OCRBackendError(f"Tesseract OCR could not process the image: {error}") from error
+        if result.returncode != 0:
+            detail = result.stderr.decode(errors="replace").strip()
+            raise OCRBackendError(f"Tesseract OCR failed: {detail}")
+
+        try:
+            rows = csv.DictReader(
+                io.StringIO(result.stdout.decode("utf-8-sig", errors="strict")),
+                delimiter="\t",
+            )
+            required_fields = {"level", "left", "top", "width", "height", "conf", "text"}
+            if rows.fieldnames is None or not required_fields.issubset(rows.fieldnames):
+                raise ValueError("Tesseract TSV is missing required fields")
+            detections: list[OCRDetection] = []
+            for row in rows:
+                text = (row.get("text") or "").strip()
+                if row.get("level") != "5" or not text:
+                    continue
+                left = float(row["left"])
+                top = float(row["top"])
+                width = float(row["width"])
+                height = float(row["height"])
+                raw_confidence = float(row["conf"])
+                detections.append(
+                    OCRDetection(
+                        text=text,
+                        confidence=(
+                            raw_confidence / 100.0 if raw_confidence >= 0 else None
+                        ),
+                        bbox=(left, top, left + width, top + height),
+                    )
+                )
+        except (csv.Error, KeyError, TypeError, ValueError, UnicodeDecodeError) as error:
+            raise OCRBackendError(f"could not parse Tesseract TSV output: {error}") from error
+        return tuple(detections)
 
 
 @dataclass(frozen=True)
@@ -118,6 +229,28 @@ class VideoTextExtractor:
 
 def _normalize_text(text: str) -> str:
     return " ".join(text.casefold().split())
+
+
+def _find_tesseract(executable: str | Path | None) -> str:
+    if executable is not None:
+        resolved = Path(executable).expanduser()
+        if resolved.is_file():
+            return str(resolved)
+        raise OCRBackendError(f"Tesseract executable was not found: {resolved}")
+
+    discovered = shutil.which("tesseract")
+    if discovered:
+        return discovered
+
+    for environment_variable in ("ProgramFiles", "ProgramFiles(x86)"):
+        install_root = os.environ.get(environment_variable)
+        if install_root:
+            candidate = Path(install_root) / "Tesseract-OCR" / "tesseract.exe"
+            if candidate.is_file():
+                return str(candidate)
+    raise OCRBackendError(
+        "Tesseract was not found; install the local engine or provide its executable path"
+    )
 
 
 def _is_nearby(

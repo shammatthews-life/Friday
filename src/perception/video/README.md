@@ -46,7 +46,23 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 ## Video text extraction foundation
 
-`VideoTextExtractor` accepts an `OCRBackend` that maps an image to `OCRDetection` records, then attaches the source `PerceptionFrame` timestamp, frame index, and source ID. Backend confidence and bounding boxes are preserved only when supplied. Repeated normalized text from the same source is suppressed when actual consecutive observations fall within configured frame/time gaps; emitted observations and deduplication keys are bounded. Supply an optional `text_extractor` to `VideoAnalysisSession` to include its structured observations in `VideoAnalysisResult.text_observations`. OCR is separate from decoding, perception, tracking, and language generation; no OCR model is bundled.
+`VideoTextExtractor` accepts an `OCRBackend` that maps an image to `OCRDetection` records, then attaches the source `PerceptionFrame` timestamp, frame index, and source ID. Backend confidence and bounding boxes are preserved only when supplied. Repeated normalized text from the same source is suppressed when actual consecutive observations fall within configured frame/time gaps; emitted observations and deduplication keys are bounded. Supply an optional `text_extractor` to `VideoAnalysisSession` to include its structured observations in `VideoAnalysisResult.text_observations`. OCR is separate from decoding, perception, tracking, and language generation.
+
+### Local OCR backend
+
+`TesseractOCRBackend` invokes the local Tesseract command-line engine with its TSV output. It returns word-level detections, converts Tesseract's reported 0–100 word confidence to a 0–1 value, and converts reported left/top/width/height boxes to `(x1, y1, x2, y2)`. The extractor attaches frame timestamp/index/source metadata; an empty engine result stays empty. The adapter uses Python's standard library and existing OpenCV dependency, so it does not add a Python OCR package or bind this project to a particular Python version.
+
+The verified Windows setup for this environment is Tesseract OCR `5.4.0.20240606` from the UB Mannheim Windows installer, with `eng.traineddata`. The project uses the native executable rather than `pytesseract`: the project interpreter is Python 3.14.5, while the inspected `rapidocr-onnxruntime` release metadata declares `Requires-Python <3.13`; Tesseract CLI avoids that wrapper-compatibility issue and does not add a second inference runtime. Install the Tesseract engine and required language data separately; the engine is not installed by `requirements.txt` and no model/engine assets belong in the repository. The backend discovers `tesseract` on `PATH` or the standard Windows Program Files locations; pass its executable path explicitly if installed elsewhere.
+
+Selection/format references: [Tesseract installation guide](https://tesseract-ocr.github.io/tessdoc/Installation.html), [UB Mannheim Windows releases](https://github.com/UB-Mannheim/tesseract/releases), [Tesseract command-line usage](https://tesseract-ocr.github.io/tessdoc/Command-Line-Usage.html), and [RapidOCR package metadata](https://pypi.org/project/rapidocr-onnxruntime/).
+
+Run the real local OCR smoke test with:
+
+```powershell
+D:\friday\.venv\Scripts\python.exe scripts/test_video_ocr_real.py
+```
+
+The smoke test uses a generated in-memory text image, not a real-world video. Printed-text recognition quality, small/blurred text, handwriting, other languages, and performance on video remain unvalidated.
 
 Run deterministic temporal tests with:
 
