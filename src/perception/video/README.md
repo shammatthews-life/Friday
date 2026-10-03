@@ -40,6 +40,10 @@ Pass `sample.frame` to the existing `PerceptionPipeline`; the sampler does not r
 
 `VideoQueryEngine` provides deterministic structured queries over a `SemanticTimeline`, its retained `VideoFacts`, matching `VideoEvidenceIndex`, and episode summaries. It supports object presence/appearance/disappearance/movement, track history and observed duration, event/episode time ranges, evidence lookup, and the retained timeline. Optional label filters are case-insensitive; duplicate labels remain separate by track ID. Missing metadata and empty results are returned as-is, with no generated natural-language answers.
 
+## End-to-end analysis session
+
+`VideoAnalysisSession` composes a frame source, `TemporalSampler`, existing `PerceptionPipeline`, timeline, facts, evidence index, episode summarizer, and query engine. `run()` returns a structured `VideoAnalysisResult` with input metadata, sampled/processed/invalid frame counts, component results, query access, status, and explicit processing errors. Invalid perception snapshots are skipped from the semantic timeline while processing continues; source-open failures, decoder errors, empty input, and partial results are surfaced in the result. Session output is structured data only.
+
 Run deterministic temporal tests with:
 
 ```powershell
