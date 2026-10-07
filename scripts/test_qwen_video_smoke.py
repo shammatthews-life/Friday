@@ -46,7 +46,7 @@ DISTANCE_PATTERN = re.compile(
 )
 ABSOLUTE_NO_TEXT_PATTERN = re.compile(
     r"\b(?:no|not any)\s+(?:readable\s+|visible\s+)?text\b"
-    r".{0,40}\b(?:shown|present|visible|exist(?:ed|s)?)\b"
+    r".{0,40}\b(?:shown|present|visible|exist(?:ed|s)?|observed|detected|found)\b"
     r"|\b(?:video|clip)\s+(?:contains?|shows?)\s+no text\b"
     r"|\bthere (?:is|was) no text\b",
     re.IGNORECASE,
@@ -138,6 +138,14 @@ def _answer_checks(
         "no_internal_identifiers": INTERNAL_PATTERN.search(response) is None,
         "no_invented_physical_measurements": DISTANCE_PATTERN.search(response) is None,
     }
+    observation_status = context.get("text_observation_status")
+    if (
+        isinstance(observation_status, dict)
+        and observation_status.get("status") == "no_recognized_observations"
+    ):
+        checks["no_absolute_text_absence_claim"] = (
+            ABSOLUTE_NO_TEXT_PATTERN.search(response) is None
+        )
     if question == QUESTIONS[0]:
         checks["full_video_context_supplied"] = context["selection"]["kind"] == "full_video"
         checks["visual_claims_have_supporting_events"] = (
@@ -277,8 +285,29 @@ def _render_report(report: dict[str, Any]) -> str:
                 "",
                 f"- Response: {turn.get('response', '(no response)')}",
                 f"- First token: {turn.get('first_token_seconds')}",
-                f"- Completion: {turn.get('completion_seconds')}",
+                f"- Prompt/context construction: {turn.get('context_construction_seconds')} / "
+                f"{turn.get('prompt_construction_seconds')} seconds",
+                f"- Request setup / connection setup: {turn.get('request_setup_seconds')} / "
+                f"{turn.get('request_connection_setup_seconds')} seconds",
+                f"- Estimated prompt processing: {turn.get('prompt_processing_estimate_seconds')} seconds",
+                f"- Completion generation: {turn.get('completion_seconds')} seconds",
+                f"- Request round-trip: {turn.get('request_round_trip_seconds')} seconds",
                 f"- Total FRIDAY response: {turn.get('total_response_seconds')}",
+                f"- Prompt/completion tokens: {turn.get('prompt_tokens')} / "
+                f"{turn.get('completion_tokens')}",
+                f"- Request bytes: {turn.get('request_bytes')}",
+                "- Prompt message character counts: "
+                + ", ".join(
+                    f"{item['role']}={item['characters']}"
+                    for item in turn.get("message_content_characters", [])
+                ),
+                "- Context section character counts: "
+                + ", ".join(
+                    f"{name}={characters}"
+                    for name, characters in turn.get(
+                        "context_section_characters", {}
+                    ).items()
+                ),
                 f"- Context status: `{turn.get('evidence_status')}`",
                 "- Checks:",
             ]
@@ -404,6 +433,16 @@ def main() -> int:
             result.knowledge,
             question_interface=_compact_context_interface(),
         )
+        context_construction_times: list[float] = []
+        original_handle_question = bridge.handle_question
+
+        def timed_handle_question(question, memory):
+            context_started = time.perf_counter()
+            response = original_handle_question(question, memory)
+            context_construction_times.append(time.perf_counter() - context_started)
+            return response
+
+        bridge.handle_question = timed_handle_question
         engine = ConversationEngine(adapter, video_bridge=bridge)
         previous_track_id: int | None = None
         for question in QUESTIONS:
@@ -444,7 +483,36 @@ def main() -> int:
                 "evidence_status": queried.status.value,
                 "context": context,
                 "first_token_seconds": metric.get("first_token_latency_seconds"),
-                "completion_seconds": metric.get("response_latency_seconds"),
+                "completion_seconds": metric.get("completion_generation_seconds"),
+                "request_round_trip_seconds": metric.get("response_latency_seconds"),
+                "context_construction_seconds": (
+                    context_construction_times[-1]
+                    if context_construction_times
+                    else None
+                ),
+                "prompt_construction_seconds": metric.get(
+                    "prompt_construction_seconds"
+                ),
+                "request_setup_seconds": metric.get("request_setup_seconds"),
+                "request_connection_setup_seconds": metric.get(
+                    "request_connection_setup_seconds"
+                ),
+                "prompt_processing_estimate_seconds": metric.get(
+                    "prompt_processing_estimate_seconds"
+                ),
+                "completion_generation_seconds": metric.get(
+                    "completion_generation_seconds"
+                ),
+                "prompt_tokens": metric.get("prompt_tokens"),
+                "completion_tokens": metric.get("generated_tokens"),
+                "request_bytes": metric.get("request_bytes"),
+                "message_content_characters": metric.get(
+                    "message_content_characters", []
+                ),
+                "context_section_characters": {
+                    name: len(json.dumps(value, ensure_ascii=False))
+                    for name, value in context.items()
+                },
                 "total_response_seconds": total_response,
                 "checks": checks,
             }
