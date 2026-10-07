@@ -13,6 +13,7 @@ from src.perception.video.query import VideoQueryEngine
 from src.perception.video.summary import VideoEpisode, VideoEventSummarizer
 from src.perception.video.temporal import TemporalSampler
 from src.perception.video.timeline import SemanticEvent, SemanticTimeline
+from src.perception.video.text_history import VideoTextHistory, VideoTextQueryEngine
 from src.perception.video.video_source import VideoInputError
 
 
@@ -49,6 +50,8 @@ class VideoAnalysisResult:
     episodes: tuple[VideoEpisode, ...]
     queries: VideoQueryEngine
     errors: tuple[str, ...]
+    text_history: VideoTextHistory
+    text_queries: VideoTextQueryEngine
     text_observations: tuple[VideoTextObservation, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
@@ -63,6 +66,7 @@ class VideoAnalysisResult:
             "evidence": self.evidence.to_dict(),
             "episodes": [episode.to_dict() for episode in self.episodes],
             "text_observations": [item.to_dict() for item in self.text_observations],
+            "text_history": self.text_history.to_dict(),
             "errors": list(self.errors),
         }
 
@@ -87,6 +91,7 @@ class VideoAnalysisSession:
         self.temporal_sampler = temporal_sampler or TemporalSampler()
         self.timeline = timeline or SemanticTimeline(history_size=history_size)
         self.text_extractor = text_extractor
+        self.text_history = VideoTextHistory(history_size=history_size)
         self.history_size = history_size
 
     def run(self) -> VideoAnalysisResult:
@@ -110,13 +115,22 @@ class VideoAnalysisSession:
                 if first_source_id is None:
                     first_source_id = frame.source_id or None
                 self.temporal_sampler.process(frame)
+                text_observations: tuple[VideoTextObservation, ...] | None = None
                 if self.text_extractor is not None:
                     try:
                         self.text_extractor.process(frame)
+                        text_observations = self.text_extractor.last_observations
                     except OCRBackendError as error:
                         errors.append(
                             f"frame {frame.frame_index}: OCR failed: {type(error).__name__}: {error}"
                         )
+                if text_observations is not None:
+                    self.text_history.add_frame(
+                        timestamp=frame.timestamp,
+                        frame_index=frame.frame_index,
+                        source_id=frame.source_id or None,
+                        observations=text_observations,
+                    )
                 output = self.pipeline.process(frame)
                 processed_count += 1
                 if not output.snapshot.valid:
@@ -153,6 +167,7 @@ class VideoAnalysisSession:
             evidence_index=evidence,
             episodes=episodes,
         )
+        text_queries = VideoTextQueryEngine(self.text_history)
         metadata = _input_metadata(self.source, first_source_id)
         if metadata.source_skipped_invalid_frame_count:
             errors.append(
@@ -185,6 +200,8 @@ class VideoAnalysisSession:
                 if self.text_extractor is not None
                 else ()
             ),
+            text_history=self.text_history,
+            text_queries=text_queries,
         )
 
 

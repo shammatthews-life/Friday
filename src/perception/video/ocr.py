@@ -183,6 +183,7 @@ class VideoTextExtractor:
         self.dedup_frame_gap = dedup_frame_gap
         self.dedup_time_gap_seconds = dedup_time_gap_seconds
         self._observations: deque[VideoTextObservation] = deque(maxlen=history_size)
+        self._last_observations: tuple[VideoTextObservation, ...] = ()
         self._last_seen: OrderedDict[tuple[str | None, str], VideoTextObservation] = OrderedDict()
         self.duplicates_suppressed = 0
 
@@ -190,8 +191,15 @@ class VideoTextExtractor:
     def observations(self) -> tuple[VideoTextObservation, ...]:
         return tuple(self._observations)
 
+    @property
+    def last_observations(self) -> tuple[VideoTextObservation, ...]:
+        """Detections from the last frame, including those suppressed by deduplication."""
+        return self._last_observations
+
     def process(self, frame: PerceptionFrame) -> tuple[VideoTextObservation, ...]:
         emitted: list[VideoTextObservation] = []
+        observed: list[VideoTextObservation] = []
+        self._last_observations = ()
         detections = self.backend.extract(frame.image)
         for detection in detections:
             if not isinstance(detection, OCRDetection):
@@ -206,6 +214,7 @@ class VideoTextExtractor:
                 bbox=detection.bbox,
                 source_id=frame.source_id or None,
             )
+            observed.append(observation)
             key = (observation.source_id, _normalize_text(observation.text))
             previous = self._last_seen.get(key)
             duplicate = previous is not None and _is_nearby(
@@ -224,6 +233,7 @@ class VideoTextExtractor:
                 continue
             self._observations.append(observation)
             emitted.append(observation)
+        self._last_observations = tuple(observed)
         return tuple(emitted)
 
 

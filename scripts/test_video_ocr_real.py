@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.perception.types import PerceptionFrame
 from src.perception.video.ocr import TesseractOCRBackend, VideoTextExtractor
+from src.perception.video.text_history import VideoTextHistory
 
 
 def make_text_frame(text: str) -> np.ndarray:
@@ -41,6 +42,13 @@ def test_real_tesseract_ocr_and_metadata() -> None:
     )
 
     observations = extractor.process(frame)
+    text_history = VideoTextHistory()
+    text_history.add_frame(
+        timestamp=frame.timestamp,
+        frame_index=frame.frame_index,
+        source_id=frame.source_id,
+        observations=extractor.last_observations,
+    )
     recognized_text = " ".join(item.text for item in observations)
     normalized_text = recognized_text.upper()
     assert "FRIDAY" in normalized_text, recognized_text
@@ -57,8 +65,13 @@ def test_real_tesseract_ocr_and_metadata() -> None:
         for item in observations
         if item.bbox is not None
     )
+    assert {item.normalized_text for item in text_history.texts_present()} >= {
+        "friday",
+        "visionaid",
+        "204",
+    }
     print(f"REAL OCR RECOGNIZED: {recognized_text}")
-    print("TEXT, CONFIDENCE, BOUNDING BOX, AND FRAME METADATA: PASS")
+    print("TEXT, METADATA, AND TESSERACT-TO-HISTORY DATA FLOW: PASS")
 
 
 def test_empty_real_ocr_result() -> None:

@@ -64,6 +64,16 @@ D:\friday\.venv\Scripts\python.exe scripts/test_video_ocr_real.py
 
 The smoke test uses a generated in-memory text image, not a real-world video. Printed-text recognition quality, small/blurred text, handwriting, other languages, and performance on video remain unvalidated.
 
+## Video text history
+
+`VideoTextHistory` groups normalized identical OCR text by source across nearby sampled frames. It retains each episode's original text, first/last observed timestamps, available frame indexes, confidence values, boxes, and bounded source observations. It emits `TEXT_APPEARED`, `TEXT_REMAINED`, `TEXT_DISAPPEARED`, and `TEXT_REAPPEARED` records. A disappearance is recorded at the first processed frame where the configured observation gap is exceeded; it is not an inferred exact physical disappearance time. No disappearance is inferred at end-of-video without a later sampled frame.
+
+The layer receives each frame's valid raw OCR observations, including repeated detections suppressed from `VideoTextExtractor.observations` by its existing deduplication API. `VideoAnalysisResult.text_history` and `text_queries` expose the grouped history through the session; the original `text_observations` output and deduplication behavior are unchanged. OCR failures do not count as empty OCR observations.
+
+`VideoTextQueryEngine` supports `texts_present`, `texts_appeared` (appearance and reappearance events), `texts_disappeared`, `text_history`, and inclusive `texts_in_time_range` queries. Same normalized text from different source IDs stays separate; distinct normalized text remains separate regardless of spatial proximity. Event history, episodes, and observations retained per episode are bounded by `history_size`.
+
+Text history records only OCR observations and gaps between processed frames. It does not infer text meaning, visibility between sampled frames, or disappearance at EOF. When an episode's retained observation list reaches its configured bound, older per-episode observations are discarded while first/last timestamps remain available.
+
 Run deterministic temporal tests with:
 
 ```powershell
