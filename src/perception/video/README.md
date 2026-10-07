@@ -74,6 +74,10 @@ The layer receives each frame's valid raw OCR observations, including repeated d
 
 Text history records only OCR observations and gaps between processed frames. It does not infer text meaning, visibility between sampled frames, or disappearance at EOF. When an episode's retained observation list reaches its configured bound, older per-episode observations are discarded while first/last timestamps remain available.
 
+## Grounded video knowledge
+
+`VideoKnowledge.from_analysis(result)` combines the session's existing facts, semantic episodes, evidence index, OCR observations, text history, and input metadata without recomputing them. Its `to_dict()` output has `visual`, `text`, and `video_metadata` sections. Deterministic accessors provide visual information, text information, events and text in inclusive time ranges, facts by track ID, and evidence references. Only fields supplied by the underlying layers are included; unavailable values remain `None` or absent, and this layer does not infer bounding boxes or source IDs for visual events.
+
 Run deterministic temporal tests with:
 
 ```powershell
