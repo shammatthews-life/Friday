@@ -78,6 +78,14 @@ Text history records only OCR observations and gaps between processed frames. It
 
 `VideoKnowledge.from_analysis(result)` combines the session's existing facts, semantic episodes, evidence index, OCR observations, text history, and input metadata without recomputing them. Its `to_dict()` output has `visual`, `text`, and `video_metadata` sections. Deterministic accessors provide visual information, text information, events and text in inclusive time ranges, facts by track ID, and evidence references. Only fields supplied by the underlying layers are included; unavailable values remain `None` or absent, and this layer does not infer bounding boxes or source IDs for visual events.
 
+`VideoAnalysisResult.knowledge` exposes this fused representation while retaining the existing raw result fields. `VideoContextBuilder` in `context.py` creates deterministic structured context with full-video, inclusive time-range, track-ID, or normalized-text selection. `VideoContextLimits` bounds top-level and nested item counts; the output reports omitted counts in `truncated`. Context is structured data only, not generated prose or a model decision, and selection never synthesizes missing visual metadata.
+
+## Grounded video questions and FRIDAY
+
+`VideoQuestionInterface.query(question, knowledge)` applies deterministic rules for full-video questions, visual-event questions, time ranges, object/track questions, and recognized text. Unsupported questions return `unsupported`; supported queries with no matching observations return `insufficient_context`. Around/at a timestamp selects a configurable window (default: one second on either side). Ambiguous duplicate labels remain separate tracks and are reported as insufficient rather than resolved by guessing.
+
+`VideoConversationBridge` connects this query result to `ConversationEngine(video_bridge=...)`. Update its knowledge with a completed result's `knowledge` when a new video is analyzed. Video requests bypass LLM query classification, then use the existing `respond_to_capability` path to let FRIDAY/Qwen phrase an answer from structured context only. A unique object track is retained for follow-up pronouns; ambiguous labels do not establish a track referent. Non-video messages continue through the existing conversation decision flow. The bridge sends no frames and makes no answer itself.
+
 Run deterministic temporal tests with:
 
 ```powershell

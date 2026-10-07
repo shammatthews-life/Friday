@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -8,6 +8,7 @@ from src.perception.pipeline import PerceptionPipeline
 from src.perception.types import PerceptionFrame
 from src.perception.video.evidence import VideoEvidenceIndex
 from src.perception.video.facts import VideoFacts
+from src.perception.video.knowledge import VideoKnowledge
 from src.perception.video.ocr import OCRBackendError, VideoTextExtractor, VideoTextObservation
 from src.perception.video.query import VideoQueryEngine
 from src.perception.video.summary import VideoEpisode, VideoEventSummarizer
@@ -53,6 +54,10 @@ class VideoAnalysisResult:
     text_history: VideoTextHistory
     text_queries: VideoTextQueryEngine
     text_observations: tuple[VideoTextObservation, ...] = ()
+    knowledge: VideoKnowledge = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "knowledge", VideoKnowledge.from_analysis(self))
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -67,6 +72,7 @@ class VideoAnalysisResult:
             "episodes": [episode.to_dict() for episode in self.episodes],
             "text_observations": [item.to_dict() for item in self.text_observations],
             "text_history": self.text_history.to_dict(),
+            "knowledge": self.knowledge.to_dict(),
             "errors": list(self.errors),
         }
 

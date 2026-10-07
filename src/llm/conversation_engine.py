@@ -12,6 +12,10 @@ from src.llm.tool_interface import (
     CapabilityRequest,
     CapabilityResult,
 )
+from src.llm.video_context_bridge import (
+    VIDEO_QUESTION_CAPABILITY,
+    VideoConversationBridge,
+)
 
 
 class DecisionKind(str, Enum):
@@ -65,11 +69,13 @@ class ConversationEngine:
         capabilities: CapabilityRegistry | None = None,
         memory: ConversationMemory | None = None,
         clarification_response: str = "Which item would you like me to guide you to?",
+        video_bridge: VideoConversationBridge | None = None,
     ) -> None:
         self.llm = llm
         self.capabilities = capabilities or CapabilityRegistry()
         self.memory = memory or ConversationMemory()
         self.clarification_response = clarification_response
+        self.video_bridge = video_bridge
 
     def process(self, user_message: str) -> str:
         text = user_message.strip()
@@ -77,32 +83,48 @@ class ConversationEngine:
             return "What would you like to talk about?"
 
         self.memory.add_message(Message(MessageRole.USER, text))
-        decision = self.llm.decide(text, self.memory)
-        if decision.topic:
-            self.memory.current_topic = decision.topic
-        if decision.current_referent:
-            self.memory.current_referent = decision.current_referent
-
-        request = decision.capability_request
-        if decision.kind is DecisionKind.ANSWER or request is None:
-            response = decision.response
-        else:
-            resolved_arguments, missing_reference = self._resolve_references(
-                request.arguments
+        video_result = (
+            self.video_bridge.handle_question(text, self.memory)
+            if self.video_bridge is not None
+            else None
+        )
+        if video_result is not None:
+            response = self.llm.respond_to_capability(
+                text,
+                CapabilityRequest(
+                    VIDEO_QUESTION_CAPABILITY,
+                    CapabilityKind.INFORMATION,
+                ),
+                video_result,
+                self.memory,
             )
-            if missing_reference:
-                response = decision.clarification or self.clarification_response
+        else:
+            decision = self.llm.decide(text, self.memory)
+            if decision.topic:
+                self.memory.current_topic = decision.topic
+            if decision.current_referent:
+                self.memory.current_referent = decision.current_referent
+
+            request = decision.capability_request
+            if decision.kind is DecisionKind.ANSWER or request is None:
+                response = decision.response
             else:
-                resolved_request = CapabilityRequest(
-                    capability=request.capability,
-                    kind=request.kind,
-                    arguments=resolved_arguments,
+                resolved_arguments, missing_reference = self._resolve_references(
+                    request.arguments
                 )
-                self._record_task_and_target(resolved_request)
-                result = self.capabilities.invoke(resolved_request)
-                response = self.llm.respond_to_capability(
-                    text, resolved_request, result, self.memory
-                )
+                if missing_reference:
+                    response = decision.clarification or self.clarification_response
+                else:
+                    resolved_request = CapabilityRequest(
+                        capability=request.capability,
+                        kind=request.kind,
+                        arguments=resolved_arguments,
+                    )
+                    self._record_task_and_target(resolved_request)
+                    result = self.capabilities.invoke(resolved_request)
+                    response = self.llm.respond_to_capability(
+                        text, resolved_request, result, self.memory
+                    )
 
         if not response.strip():
             response = "I'm here. What would you like to talk about?"

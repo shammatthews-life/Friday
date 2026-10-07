@@ -27,27 +27,46 @@ class VideoKnowledge:
 
     @classmethod
     def from_analysis(cls, result: VideoAnalysisResult) -> VideoKnowledge:
-        metadata = {
-            "status": result.status,
-            "input": result.input_metadata.to_dict(),
-            "sampled_frame_count": result.sampled_frame_count,
-            "processed_frame_count": result.processed_frame_count,
-            "invalid_perception_frame_count": result.invalid_perception_frame_count,
-        }
-        return cls(
+        return cls.from_layers(
             facts=result.facts,
             episodes=result.episodes,
             evidence_index=result.evidence,
             text_history=result.text_history,
             text_observations=result.text_observations,
-            video_metadata=metadata,
+            video_metadata={
+                "status": result.status,
+                "input": result.input_metadata.to_dict(),
+                "sampled_frame_count": result.sampled_frame_count,
+                "processed_frame_count": result.processed_frame_count,
+                "invalid_perception_frame_count": result.invalid_perception_frame_count,
+            },
+        )
+
+    @classmethod
+    def from_layers(
+        cls,
+        *,
+        facts: VideoFacts,
+        episodes: tuple[VideoEpisode, ...],
+        evidence_index: VideoEvidenceIndex,
+        text_history: VideoTextHistory,
+        text_observations: tuple[VideoTextObservation, ...] = (),
+        video_metadata: Mapping[str, object] | None = None,
+    ) -> VideoKnowledge:
+        return cls(
+            facts=facts,
+            episodes=episodes,
+            evidence_index=evidence_index,
+            text_history=text_history,
+            text_observations=text_observations,
+            video_metadata=video_metadata or {},
         )
 
     def all_visual_information(self) -> dict[str, object]:
         return {
             "objects": [item.to_dict() for item in self.facts.objects],
             "events": [
-                _event_to_dict(event)
+                semantic_event_to_dict(event)
                 for _, event in sorted(
                     enumerate(self.facts.events),
                     key=lambda item: (item[1].timestamp, item[0]),
@@ -155,7 +174,7 @@ def _validate_range(start_timestamp: float, end_timestamp: float) -> None:
         raise ValueError("start_timestamp must not be after end_timestamp")
 
 
-def _event_to_dict(event: SemanticEvent) -> dict[str, object]:
+def semantic_event_to_dict(event: SemanticEvent) -> dict[str, object]:
     return {
         "event_type": event.event_type.value,
         "timestamp": event.timestamp,
