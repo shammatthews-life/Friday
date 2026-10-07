@@ -55,6 +55,12 @@ def test_session_exposes_knowledge_and_empty_context() -> None:
     assert empty_context["visual_objects"] == []
     assert empty_context["visual_events"] == []
     assert empty_context["text_observations"] == []
+    assert empty_context["text_observation_status"]["status"] == (
+        "no_recognized_observations"
+    )
+    assert "does not establish" in empty_context["text_observation_status"][
+        "interpretation"
+    ]
     assert empty_context["evidence_references"] == []
     assert empty.to_dict()["knowledge"] == empty.knowledge.to_dict()
     print("SESSION KNOWLEDGE INTEGRATION AND EMPTY VIDEO: PASS")
@@ -147,6 +153,9 @@ def test_time_object_and_text_contexts() -> None:
     assert all(
         item["normalized_text"] == "exit"
         for item in text_context["text_history"]["events"]
+    )
+    assert text_context["text_observation_status"]["status"] == (
+        "observations_available"
     )
     print("TIME-RANGE, OBJECT, AND TEXT CONTEXT FILTERS: PASS")
 

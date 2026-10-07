@@ -265,6 +265,23 @@ class VideoContextBuilder:
         return {
             "selection": selection,
             "video_metadata": dict(self.knowledge.video_metadata),
+            "text_observation_status": {
+                "status": (
+                    "observations_available"
+                    if limited_observations
+                    else (
+                        "observations_omitted_by_limit"
+                        if observations
+                        else "no_recognized_observations"
+                    )
+                ),
+                "interpretation": (
+                    "No recognized text observations are included for this selection; "
+                    "this does not establish that the video contains no text."
+                    if not limited_observations
+                    else "Recognized text observations are included for this selection."
+                ),
+            },
             "time_ranges": {
                 "requested": (
                     {
