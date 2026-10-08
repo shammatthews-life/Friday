@@ -2,7 +2,7 @@
 
 - Result: **PASS**
 - Model: `models\llm\qwen3-8b\Qwen3-8B-Q4_K_M.gguf` (Qwen3-8B GGUF / Q4_K_M)
-- Runtime: `0.00.001.360 I srv  llama_server: initializing ...
+- Runtime: `0.00.001.391 I srv  llama_server: initializing ...
 version: 0.5.0-dev (build 11146, commit 7fe450e19)
 built with Clang 20.1.8 for Windows x86_64`
 - Context size: 4096
@@ -10,8 +10,8 @@ built with Clang 20.1.8 for Windows x86_64`
 - Video: `data\test_videos\friday_video_smoke.avi`
 - Session result: `completed`
 - Sampled/processed frames: 4/4
-- Qwen startup: 11.780120500014164
-- Peak sampled process-tree RSS: 6197.1 MiB
+- Qwen startup: 11.359270700020716
+- Peak sampled process-tree RSS: 6172.3 MiB
 
 ## OCR/text observations
 
@@ -22,13 +22,13 @@ built with Clang 20.1.8 for Windows x86_64`
 ### What happened in this video?
 
 - Response: The video shows a sports ball moving across the scene. It first appears, then moves, and is later reacquired as it continues to move.
-- First token: 33.41772199992556
-- Prompt/context construction: 0.00018560001626610756 / 0.00011609995272010565 seconds
-- Request setup / connection setup: 0.00010890001431107521 / 0.030432499945163727 seconds
-- Estimated prompt processing: 33.3872894999804 seconds
-- Completion generation: 4.214069499983452 seconds
-- Request round-trip: 37.63179149990901 seconds
-- Total FRIDAY response: 37.63230749999639
+- First token: 33.55996879993472
+- Prompt/context construction: 0.0001903000520542264 / 0.00012510002125054598 seconds
+- Request setup / connection setup: 0.00010950001887977123 / 0.03104869998060167 seconds
+- Estimated prompt processing: 33.52892009995412 seconds
+- Completion generation: 4.930233600083739 seconds
+- Request round-trip: 38.49020240001846 seconds
+- Total FRIDAY response: 38.490737100015394
 - Prompt/completion tokens: 2193 / 31
 - Request bytes: 7222
 - Prompt message character counts: system=1839, system=4710, user=28
@@ -48,13 +48,13 @@ built with Clang 20.1.8 for Windows x86_64`
 ### What about the sports ball?
 
 - Response: The sports ball first appeared, then moved, and was later reacquired as it continued to move across the scene.
-- First token: 27.754758200026117
-- Prompt/context construction: 0.0003635999746620655 / 0.0001362999901175499 seconds
-- Request setup / connection setup: 0.00022599997464567423 / 0.21369640005286783 seconds
-- Estimated prompt processing: 27.54106179997325 seconds
-- Completion generation: 3.339654400013387 seconds
-- Request round-trip: 31.094412600039504 seconds
-- Total FRIDAY response: 31.09523860004265
+- First token: 28.106568800052628
+- Prompt/context construction: 0.00035660003777593374 / 0.00013649999164044857 seconds
+- Request setup / connection setup: 0.00013529998250305653 / 0.21789329999592155 seconds
+- Estimated prompt processing: 27.888675500056706 seconds
+- Completion generation: 3.628538199933246 seconds
+- Request round-trip: 31.735106999985874 seconds
+- Total FRIDAY response: 31.735831100028008
 - Prompt/completion tokens: 2246 / 25
 - Request bytes: 7483
 - Prompt message character counts: system=1839, user=28, assistant=133, system=4736, user=27
@@ -72,13 +72,13 @@ built with Clang 20.1.8 for Windows x86_64`
 ### When did it appear?
 
 - Response: The sports ball appeared at the start of the video, which is at timestamp 0.0.
-- First token: 28.09913929994218
-- Prompt/context construction: 0.00022309995256364346 / 0.0001351999817416072 seconds
-- Request setup / connection setup: 0.0001428000396117568 / 0.33152080001309514 seconds
-- Estimated prompt processing: 27.767618499929085 seconds
-- Completion generation: 2.680962600046769 seconds
-- Request round-trip: 30.78010189998895 seconds
-- Total FRIDAY response: 30.780722100054845
+- First token: 28.76504849991761
+- Prompt/context construction: 0.00019150006119161844 / 0.00010010006371885538 seconds
+- Request setup / connection setup: 0.00010710000060498714 / 0.2512423999141902 seconds
+- Estimated prompt processing: 28.51380610000342 seconds
+- Completion generation: 3.04871920007281 seconds
+- Request round-trip: 31.81376769999042 seconds
+- Total FRIDAY response: 31.81425619998481
 - Prompt/completion tokens: 2284 / 21
 - Request bytes: 7666
 - Prompt message character counts: system=1839, user=28, assistant=133, user=27, assistant=110, system=4721, user=19
@@ -96,13 +96,13 @@ built with Clang 20.1.8 for Windows x86_64`
 ### What text was shown?
 
 - Response: No text was recognized in the video. Whether text was present cannot be determined.
-- First token: 8.546021500020288
-- Prompt/context construction: 9.789993055164814e-05 / 4.199997056275606e-05 seconds
-- Request setup / connection setup: 0.0001175999641418457 / 0.2767836001003161 seconds
-- Estimated prompt processing: 8.269237899919972 seconds
-- Completion generation: 1.9835664000129327 seconds
-- Request round-trip: 10.52958790003322 seconds
-- Total FRIDAY response: 10.52990810002666
+- First token: 9.064427200006321
+- Prompt/context construction: 0.00013429997488856316 / 6.330001633614302e-05 seconds
+- Request setup / connection setup: 0.00011939997784793377 / 0.26147519994992763 seconds
+- Estimated prompt processing: 8.802952000056393 seconds
+- Completion generation: 2.1914264999795705 seconds
+- Request round-trip: 11.255853699985892 seconds
+- Total FRIDAY response: 11.256247600074857
 - Prompt/completion tokens: 1031 / 17
 - Request bytes: 5029
 - Prompt message character counts: system=1839, user=28, assistant=133, user=27, assistant=110, user=19, assistant=78, system=2119, user=20

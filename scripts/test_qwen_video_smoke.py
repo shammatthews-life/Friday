@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -99,6 +100,77 @@ class ProcessTreeResourceMonitor:
             except (self.psutil.NoSuchProcess, self.psutil.AccessDenied, OSError):
                 pass
             self.stop_event.wait(self.interval_seconds)
+
+
+class NvidiaResourceMonitor:
+    def __init__(self, interval_seconds: float = 0.5) -> None:
+        self.interval_seconds = interval_seconds
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._sample, daemon=True)
+        self.samples: list[dict[str, float]] = []
+        self.device_name: str | None = None
+        self.errors: list[str] = []
+
+    def start(self) -> None:
+        self.thread.start()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        self.thread.join(timeout=3)
+
+    def _sample(self) -> None:
+        while not self.stop_event.is_set():
+            try:
+                result = subprocess.run(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=name,memory.total,memory.used,utilization.gpu",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=False,
+                )
+                if result.returncode == 0:
+                    for line in result.stdout.splitlines():
+                        fields = [item.strip() for item in line.split(",")]
+                        if len(fields) != 4 or "RTX 4050" not in fields[0]:
+                            continue
+                        self.device_name = fields[0]
+                        self.samples.append(
+                            {
+                                "memory_total_mib": float(fields[1]),
+                                "memory_used_mib": float(fields[2]),
+                                "utilization_percent": float(fields[3]),
+                            }
+                        )
+                        break
+            except (OSError, subprocess.SubprocessError, ValueError):
+                if len(self.errors) < 3:
+                    self.errors.append("Unable to sample NVIDIA GPU metrics.")
+            self.stop_event.wait(self.interval_seconds)
+
+    def summary(self) -> dict[str, object]:
+        return {
+            "device_name": self.device_name,
+            "sample_count": len(self.samples),
+            "sampling_errors": list(self.errors),
+            "peak_memory_used_mib": max(
+                (item["memory_used_mib"] for item in self.samples),
+                default=None,
+            ),
+            "average_utilization_percent": (
+                sum(item["utilization_percent"] for item in self.samples)
+                / len(self.samples)
+                if self.samples
+                else None
+            ),
+            "peak_utilization_percent": max(
+                (item["utilization_percent"] for item in self.samples),
+                default=None,
+            ),
+        }
 
 
 def _compact_context_interface() -> VideoQuestionInterface:
@@ -353,7 +425,13 @@ def main() -> int:
     report: dict[str, Any] = {
         "status": "FAIL",
         "model": {"path": str(MODEL_PATH.relative_to(ROOT))},
-        "runtime": {"qwen_identity_verified": False},
+        "runtime": {
+            "qwen_identity_verified": False,
+            "gpu_layers": int(
+                os.environ.get("FRIDAY_QWEN_GPU_LAYERS", "24")
+            ),
+            "profile_label": os.environ.get("FRIDAY_QWEN_PROFILE_LABEL", "smoke"),
+        },
         "video": {"path": str(VIDEO_PATH.relative_to(ROOT))},
         "timing": {},
         "memory": {},
@@ -363,6 +441,7 @@ def main() -> int:
     adapter: QwenAdapter | None = None
     pipeline = None
     monitor: ProcessTreeResourceMonitor | None = None
+    nvidia_monitor: NvidiaResourceMonitor | None = None
     all_checks_passed = False
     try:
         if not VIDEO_PATH.is_file():
@@ -372,11 +451,13 @@ def main() -> int:
 
         monitor = ProcessTreeResourceMonitor()
         monitor.start()
+        nvidia_monitor = NvidiaResourceMonitor()
+        nvidia_monitor.start()
         adapter = QwenAdapter(
             model_path=MODEL_PATH,
             runtime_dir=RUNTIME_DIR,
             context_size=4096,
-            gpu_layers=24,
+            gpu_layers=report["runtime"]["gpu_layers"],
             max_tokens=160,
             startup_timeout=240,
             request_timeout=300,
@@ -392,8 +473,29 @@ def main() -> int:
                 "context_size": adapter.context_size,
                 "qwen_identity_verified": True,
                 "base_url_loopback": adapter.base_url.startswith("http://127.0.0.1:"),
+                "executable": str(adapter.runtime_executable),
+                "vulkan_devices": adapter.runtime_devices,
+                "vulkan_device_selected": adapter.vulkan_device,
+                "gpu_layers": adapter.gpu_layers,
+                "server_model_load_seconds": adapter.startup_seconds,
+                "cpu_threads": adapter.runtime_threads,
+                "batch_size": 128,
+                "ubatch_size": 32,
+                "context_size": adapter.context_size,
+                "flash_attention": "auto (default; not specified)",
+                "kv_cache_types": "default/auto (not specified)",
+                "other_launch_flags": {
+                    "parallel": 1,
+                    "jinja": True,
+                    "reasoning": "off",
+                    "webui": False,
+                    "device": adapter.vulkan_device,
+                },
+                "launch_command": adapter.runtime_command,
+                "startup_diagnostics": adapter.startup_diagnostics,
             }
         )
+        report["memory"]["nvidia"] = nvidia_monitor.summary()
 
         pipeline = create_pipeline("realtime", root=ROOT)
         source = VideoFrameSource(VIDEO_PATH, every_n_frames=2)
@@ -505,6 +607,7 @@ def main() -> int:
                 ),
                 "prompt_tokens": metric.get("prompt_tokens"),
                 "completion_tokens": metric.get("generated_tokens"),
+                "tokens_per_second": metric.get("tokens_per_second"),
                 "request_bytes": metric.get("request_bytes"),
                 "message_content_characters": metric.get(
                     "message_content_characters", []
@@ -538,6 +641,7 @@ def main() -> int:
             if monitor is not None and monitor.peak_rss_bytes
             else None
         )
+        report["memory"]["nvidia"] = nvidia_monitor.summary()
         all_checks_passed = (
             result.status == "completed"
             and len(report["turns"]) == len(QUESTIONS)
@@ -567,8 +671,17 @@ def main() -> int:
                 if monitor.peak_rss_bytes
                 else None
             )
+        if nvidia_monitor is not None:
+            nvidia_monitor.stop()
+            report["memory"]["nvidia"] = nvidia_monitor.summary()
         REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
         REPORT_PATH.write_text(_render_report(report), encoding="utf-8")
+        profile_json_path = os.environ.get("FRIDAY_QWEN_PROFILE_JSON")
+        if profile_json_path:
+            Path(profile_json_path).write_text(
+                json.dumps(report, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
 
     print(f"SMOKE RESULT: {report['status']}")
     print(f"REPORT: {REPORT_PATH.relative_to(ROOT)}")

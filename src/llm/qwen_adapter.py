@@ -168,6 +168,11 @@ class QwenAdapter:
         self.owns_server = False
         self.runtime_version: str | None = None
         self.vulkan_device: str | None = None
+        self.runtime_devices: str | None = None
+        self.runtime_command: list[str] = []
+        self.runtime_executable: Path | None = None
+        self.runtime_threads = min(8, max(1, (os.cpu_count() or 4) - 2))
+        self.startup_diagnostics: str = ""
         self.startup_seconds: float | None = None
         self.completion_metrics: list[dict[str, Any]] = []
 
@@ -184,8 +189,10 @@ class QwenAdapter:
         if not self.model_path.is_file():
             raise FileNotFoundError(f"Local Qwen GGUF is missing: {self.model_path}")
         executable = self._runtime_executable()
+        self.runtime_executable = executable
         self.runtime_version = self._runtime_command(executable, "--version")
         devices = self._runtime_command(executable, "--list-devices")
+        self.runtime_devices = devices
         self.vulkan_device = self._nvidia_vulkan_device(devices)
 
         port = self._available_port()
@@ -205,7 +212,7 @@ class QwenAdapter:
             "--n-gpu-layers",
             str(self.gpu_layers),
             "--threads",
-            str(min(8, max(1, (os.cpu_count() or 4) - 2))),
+            str(self.runtime_threads),
             "--batch-size",
             "128",
             "--ubatch-size",
@@ -217,6 +224,7 @@ class QwenAdapter:
             "--device",
             self.vulkan_device,
         ]
+        self.runtime_command = command.copy()
         environment = os.environ.copy()
         environment["HF_HUB_OFFLINE"] = "1"
         environment["TRANSFORMERS_OFFLINE"] = "1"
@@ -238,6 +246,7 @@ class QwenAdapter:
         try:
             self._wait_until_ready()
             self._verify_model_identity()
+            self.startup_diagnostics = self._server_log_tail()
         except Exception:
             detail = self._server_log_tail()
             self.close()
